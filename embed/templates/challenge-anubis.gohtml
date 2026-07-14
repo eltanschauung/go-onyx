@@ -25,7 +25,7 @@
     <div class="centered-div">
         <img
                 id="image"
-                style="width:100%;max-width:256px;"
+                style="width:100%;max-width:384px;"
                 src="{{ $logo }}"
         />
         {{if .Challenge }}
@@ -50,23 +50,7 @@
                 {{ .Strings.Get "noscript_warning" }}
             </noscript>
         {{end}}
-
-        <p><small>{{ .Strings.Get "details_contact_admin_with_request_id" }}: <em>{{ .Id }}</em></small></p>
     </div>
-
-
-    <footer>
-        <center>
-            <p>
-                Protected by <a href="https://git.gammaspectra.live/git/go-away">go-away</a> :: Request Id <em>{{ .Id }}</em>
-
-                {{ range .Links }}
-                    :: <a href="{{ .URL }}">{{ .Name }}</a>
-                {{ end }}
-            </p>
-        </center>
-    </footer>
-
 
     {{ range .EndTags }}
         {{ . }}
