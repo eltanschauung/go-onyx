@@ -60,7 +60,8 @@ func FillJavaScriptRegistration(state challenge.StateInterface, reg *challenge.R
 	}
 
 	reg.Class = challenge.ClassBlocking
-	reg.KeyHeaders = challenge.MinimalKeyHeaders
+	reg.KeyHeaders = challenge.StableBrowserKeyHeaders
+	reg.LegacyKeyHeaders = challenge.MinimalKeyHeaders
 
 	mux := http.NewServeMux()
 

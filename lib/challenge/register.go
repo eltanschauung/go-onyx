@@ -53,6 +53,13 @@ var MinimalKeyHeaders = []string{
 	"User-Agent",
 }
 
+// StableBrowserKeyHeaders excludes headers that can legitimately vary between
+// navigations and subresource requests. The network prefix, expiry, server key,
+// and these headers still bind a proof to the client that solved it.
+var StableBrowserKeyHeaders = []string{
+	"User-Agent",
+}
+
 func (r Register) Create(state StateInterface, name string, pol policy.Challenge, replacer *strings.Replacer) (*Registration, Id, error) {
 	runtime, ok := Runtimes[pol.Runtime]
 	if !ok {
@@ -147,6 +154,9 @@ type Registration struct {
 
 	// KeyHeaders The client headers used in key generation, in this order
 	KeyHeaders []string
+	// LegacyKeyHeaders optionally accepts proofs issued with a previous header
+	// set until those proofs expire.
+	LegacyKeyHeaders []string
 
 	// IssueChallenge Issues a challenge to a request.
 	// If Class is ClassTransparent and VerifyResult is !VerifyResult.Ok(), continue with other challenges

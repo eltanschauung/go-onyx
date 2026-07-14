@@ -261,6 +261,16 @@ func (d *RequestData) verifyChallenge(reg *Registration, key Key) (verifyResult 
 		verifyState = VerifyStateNone
 	} else {
 		verifyResult, verifyState, err = d.VerifyChallengeToken(reg, token, key)
+		if errors.Is(err, ErrVerifyKeyMismatch) && len(reg.LegacyKeyHeaders) > 0 {
+			legacyKey := getChallengeKeyForRequest(
+				d.State,
+				reg,
+				reg.LegacyKeyHeaders,
+				d.Expiration(reg.Duration),
+				d.r,
+			)
+			verifyResult, verifyState, err = d.VerifyChallengeToken(reg, token, legacyKey)
+		}
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
 			// clear invalid state
 			d.ClearChallengeToken(reg)

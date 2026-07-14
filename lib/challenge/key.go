@@ -41,6 +41,10 @@ func KeyFromString(s string) (Key, error) {
 }
 
 func GetChallengeKeyForRequest(state StateInterface, reg *Registration, until time.Time, r *http.Request) Key {
+	return getChallengeKeyForRequest(state, reg, reg.KeyHeaders, until, r)
+}
+
+func getChallengeKeyForRequest(state StateInterface, reg *Registration, keyHeaders []string, until time.Time, r *http.Request) Key {
 	data := RequestDataFromContext(r.Context())
 
 	hasher := sha256.New()
@@ -52,7 +56,7 @@ func GetChallengeKeyForRequest(state StateInterface, reg *Registration, until ti
 	hasher.Write([]byte{0})
 
 	// specific headers
-	for _, k := range reg.KeyHeaders {
+	for _, k := range keyHeaders {
 		hasher.Write([]byte(k))
 		hasher.Write([]byte{0})
 		for _, v := range r.Header.Values(k) {
