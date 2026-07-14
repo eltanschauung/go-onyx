@@ -23,6 +23,8 @@ func SetCookie(name, value string, expiry time.Time, w http.ResponseWriter, r *h
 		Name:     name,
 		Value:    value,
 		Expires:  expiry,
+		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 		Domain:   getValidHost(r.Host),
@@ -35,7 +37,10 @@ func ClearCookie(name string, w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 		Domain:   getValidHost(r.Host),
 	})
 }

@@ -211,8 +211,10 @@ func EncodeRawQuery(v url.Values) string {
 				buf.WriteByte('&')
 			}
 			buf.WriteString(k)
-			buf.WriteByte('=')
-			buf.WriteString(v)
+			if v != "" {
+				buf.WriteByte('=')
+				buf.WriteString(v)
+			}
 		}
 	}
 	return buf.String()

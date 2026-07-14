@@ -38,6 +38,22 @@ func GetLoggerForRequest(r *http.Request) *slog.Logger {
 	return slog.With(args...)
 }
 
+func cleanupProxyRequest(r *http.Request) {
+	q := r.URL.Query()
+	if ref := q.Get(challenge.QueryArgReferer); ref != "" {
+		r.Header.Set("Referer", ref)
+	}
+
+	rawQ, _ := utils.ParseRawQuery(r.URL.RawQuery)
+	// delete query parameters that were set by go-away
+	for k := range rawQ {
+		if strings.HasPrefix(k, challenge.QueryArgPrefix) {
+			rawQ.Del(k)
+		}
+	}
+	r.URL.RawQuery = utils.EncodeRawQuery(rawQ)
+}
+
 func (state *State) fetchTags(host string, backend http.Handler, r *http.Request, meta, link bool) []html.Node {
 	uri := *r.URL
 	q := uri.Query()
@@ -242,24 +258,8 @@ func (state *State) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return backend
 	}
 
-	cleanupRequest := func(r *http.Request, fromChallenge bool, ruleName string, ruleAction policy.RuleAction) {
-		if fromChallenge {
-			r.Header.Del("Referer")
-		}
-
-		q := r.URL.Query()
-		if ref := q.Get(challenge.QueryArgReferer); ref != "" {
-			r.Header.Set("Referer", ref)
-		}
-
-		rawQ, _ := utils.ParseRawQuery(r.URL.RawQuery)
-		// delete query parameters that were set by go-away
-		for k := range rawQ {
-			if strings.HasPrefix(k, challenge.QueryArgPrefix) {
-				rawQ.Del(k)
-			}
-		}
-		r.URL.RawQuery = utils.EncodeRawQuery(rawQ)
+	cleanupRequest := func(r *http.Request, ruleName string, ruleAction policy.RuleAction) {
+		cleanupProxyRequest(r)
 
 		data.ExtraHeaders.Set("X-Away-Rule", ruleName)
 		data.ExtraHeaders.Set("X-Away-Action", string(ruleAction))
@@ -279,7 +279,7 @@ func (state *State) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	for _, rule := range state.rules {
 		next, err := rule.Evaluate(lg, w, r, func() http.Handler {
-			cleanupRequest(r, true, rule.Name, rule.Action)
+			cleanupRequest(r, rule.Name, rule.Action)
 			return getBackend()
 		})
 		if err != nil {
@@ -298,7 +298,7 @@ func (state *State) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// default pass
 	_, _ = action.Pass{}.Handle(lg, w, r, func() http.Handler {
-		cleanupRequest(r, false, "DEFAULT", policy.RuleActionPASS)
+		cleanupRequest(r, "DEFAULT", policy.RuleActionPASS)
 		return getBackend()
 	})
 }
