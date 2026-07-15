@@ -48,6 +48,7 @@ type RequestData struct {
 	ChallengeState       map[Id]VerifyState
 	ChallengeMap         TokenChallengeMap
 	challengeMapModified bool
+	broadVaryApplied     bool
 
 	RemoteAddress   netip.AddrPort
 	State           StateInterface
@@ -334,13 +335,27 @@ func (d *RequestData) HasValidChallenge(id Id) bool {
 	return d.ChallengeVerify[id].Ok()
 }
 
+func (d *RequestData) HasAnyValidChallenge() bool {
+	for _, result := range d.ChallengeVerify {
+		if result.Ok() {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *RequestData) applyBroadVary(w http.ResponseWriter) {
+	d.broadVaryApplied = true
+	w.Header().Set("Vary", broadVaryHeaderValue)
+}
+
 func (d *RequestData) ResponseHeaders(w http.ResponseWriter) {
 	// send these to client so we consistently get the headers
 	//w.Header().Set("Accept-CH", "Sec-CH-UA, Sec-CH-UA-Platform")
 	//w.Header().Set("Critical-CH", "Sec-CH-UA, Sec-CH-UA-Platform")
 
 	// send Vary header to mark that response may vary based on Cookie values and other client headers
-	w.Header().Set("Vary", "Cookie, Accept, Accept-Encoding, Accept-Language, User-Agent")
+	d.applyBroadVary(w)
 
 	if d.State.Settings().MainName != "" {
 		w.Header().Add("Via", fmt.Sprintf("%s %s@%s", d.r.Proto, d.State.Settings().MainName, d.State.Settings().MainVersion))

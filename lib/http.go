@@ -326,5 +326,5 @@ func (state *State) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	data.EvaluateChallenges(w, r)
 
-	state.Mux.ServeHTTP(w, r)
+	state.Mux.ServeHTTP(challenge.NewResponsePolicyWriter(w, r, data), r)
 }
