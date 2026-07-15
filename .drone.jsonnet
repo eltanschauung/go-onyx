@@ -138,8 +138,8 @@ local Publish(mirror, registry, repo, secret, go, alpine, os, arch, trigger, pla
 #
 local containerArchitectures = ["linux/amd64", "linux/arm64", "linux/riscv64"];
 
-local alpineVersion = "3.21";
-local goVersion = "1.24";
+local alpineVersion = "3.23";
+local goVersion = "1.26.5";
 
 local mirror = "https://mirror.gcr.io";
 

@@ -5,7 +5,7 @@ environment:
   GOOS: linux
   GOTOOLCHAIN: local
 kind: pipeline
-name: build-1.24-alpine3.21-amd64
+name: build-1.26.5-alpine3.23-amd64
 platform:
   arch: amd64
   os: linux
@@ -18,7 +18,7 @@ steps:
     -o ./.bin/go-away ./cmd/go-away
   - go build -v -trimpath -ldflags='-buildid= -bindnow' -buildmode pie -o ./.bin/test-wasm-runtime
     ./cmd/test-wasm-runtime
-  image: golang:1.24-alpine3.21
+  image: golang:1.26.5-alpine3.23
   mirror: https://mirror.gcr.io
   name: build
 - commands:
@@ -26,7 +26,7 @@ steps:
     --policy examples/forgejo.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-forgejo
 - commands:
@@ -34,7 +34,7 @@ steps:
     --policy examples/generic.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-generic
 - commands:
@@ -42,7 +42,7 @@ steps:
     --policy examples/spa.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-spa
 - commands:
@@ -53,7 +53,7 @@ steps:
     0
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: test-wasm-success
 - commands:
@@ -64,7 +64,7 @@ steps:
     1
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: test-wasm-fail
 trigger:
@@ -79,7 +79,7 @@ environment:
   GOOS: linux
   GOTOOLCHAIN: local
 kind: pipeline
-name: build-1.24-alpine3.21-arm64
+name: build-1.26.5-alpine3.23-arm64
 platform:
   arch: arm64
   os: linux
@@ -92,7 +92,7 @@ steps:
     -o ./.bin/go-away ./cmd/go-away
   - go build -v -trimpath -ldflags='-buildid= -bindnow' -buildmode pie -o ./.bin/test-wasm-runtime
     ./cmd/test-wasm-runtime
-  image: golang:1.24-alpine3.21
+  image: golang:1.26.5-alpine3.23
   mirror: https://mirror.gcr.io
   name: build
 - commands:
@@ -100,7 +100,7 @@ steps:
     --policy examples/forgejo.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-forgejo
 - commands:
@@ -108,7 +108,7 @@ steps:
     --policy examples/generic.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-generic
 - commands:
@@ -116,7 +116,7 @@ steps:
     --policy examples/spa.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-spa
 - commands:
@@ -127,7 +127,7 @@ steps:
     0
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: test-wasm-success
 - commands:
@@ -138,7 +138,7 @@ steps:
     1
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: test-wasm-fail
 trigger:
@@ -166,7 +166,7 @@ steps:
     -o ./.bin/go-away ./cmd/go-away
   - go build -v -trimpath -ldflags='-buildid= -bindnow' -buildmode pie -o ./.bin/test-wasm-runtime
     ./cmd/test-wasm-runtime
-  image: golang:1.24-alpine3.21
+  image: golang:1.26.5-alpine3.23
   mirror: https://mirror.gcr.io
   name: build
 - commands:
@@ -174,7 +174,7 @@ steps:
     --policy examples/forgejo.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-forgejo
 - commands:
@@ -182,7 +182,7 @@ steps:
     --policy examples/generic.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-generic
 - commands:
@@ -190,7 +190,7 @@ steps:
     --policy examples/spa.yml --policy-snippets examples/snippets/
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: check-policy-spa
 - commands:
@@ -201,7 +201,7 @@ steps:
     0
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: test-wasm-success
 - commands:
@@ -212,7 +212,7 @@ steps:
     1
   depends_on:
   - build
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: test-wasm-fail
 trigger:
@@ -229,7 +229,7 @@ steps:
 - commands:
   - echo '[registry."docker.io"]' > buildkitd.toml
   - echo '  mirrors = ["mirror.gcr.io"]' >> buildkitd.toml
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: setup-buildkitd
 - environment:
@@ -243,10 +243,10 @@ steps:
   name: docker
   privileged: true
   settings:
-    auto_tag_suffix: alpine3.21
+    auto_tag_suffix: alpine3.23
     build_args:
-      from: alpine:3.21
-      from_builder: golang:1.24-alpine3.21
+      from: alpine:3.23
+      from_builder: golang:1.26.5-alpine3.23
     compress: true
     mirror: https://mirror.gcr.io
     password:
@@ -277,7 +277,7 @@ steps:
 - commands:
   - echo '[registry."docker.io"]' > buildkitd.toml
   - echo '  mirrors = ["mirror.gcr.io"]' >> buildkitd.toml
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: setup-buildkitd
 - environment:
@@ -291,10 +291,10 @@ steps:
   name: docker
   privileged: true
   settings:
-    auto_tag_suffix: alpine3.21
+    auto_tag_suffix: alpine3.23
     build_args:
-      from: alpine:3.21
-      from_builder: golang:1.24-alpine3.21
+      from: alpine:3.23
+      from_builder: golang:1.26.5-alpine3.23
     compress: true
     mirror: https://mirror.gcr.io
     password:
@@ -325,7 +325,7 @@ steps:
 - commands:
   - echo '[registry."docker.io"]' > buildkitd.toml
   - echo '  mirrors = ["mirror.gcr.io"]' >> buildkitd.toml
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: setup-buildkitd
 - environment:
@@ -339,10 +339,10 @@ steps:
   name: docker
   privileged: true
   settings:
-    auto_tag_suffix: alpine3.21
+    auto_tag_suffix: alpine3.23
     build_args:
-      from: alpine:3.21
-      from_builder: golang:1.24-alpine3.21
+      from: alpine:3.23
+      from_builder: golang:1.26.5-alpine3.23
     compress: true
     mirror: https://mirror.gcr.io
     password:
@@ -365,7 +365,7 @@ trigger:
 type: docker
 ---
 kind: pipeline
-name: publish-1.24-alpine3.21-git
+name: publish-1.26.5-alpine3.23-git
 platform:
   arch: amd64
   os: linux
@@ -373,7 +373,7 @@ steps:
 - commands:
   - echo '[registry."docker.io"]' > buildkitd.toml
   - echo '  mirrors = ["mirror.gcr.io"]' >> buildkitd.toml
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: setup-buildkitd
 - environment:
@@ -388,10 +388,10 @@ steps:
   privileged: true
   settings:
     auto_tag: true
-    auto_tag_suffix: alpine3.21
+    auto_tag_suffix: alpine3.23
     build_args:
-      from: alpine:3.21
-      from_builder: golang:1.24-alpine3.21
+      from: alpine:3.23
+      from_builder: golang:1.26.5-alpine3.23
     compress: true
     mirror: https://mirror.gcr.io
     password:
@@ -413,7 +413,7 @@ trigger:
 type: docker
 ---
 kind: pipeline
-name: publish-1.24-alpine3.21-codeberg
+name: publish-1.26.5-alpine3.23-codeberg
 platform:
   arch: amd64
   os: linux
@@ -421,7 +421,7 @@ steps:
 - commands:
   - echo '[registry."docker.io"]' > buildkitd.toml
   - echo '  mirrors = ["mirror.gcr.io"]' >> buildkitd.toml
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: setup-buildkitd
 - environment:
@@ -436,10 +436,10 @@ steps:
   privileged: true
   settings:
     auto_tag: true
-    auto_tag_suffix: alpine3.21
+    auto_tag_suffix: alpine3.23
     build_args:
-      from: alpine:3.21
-      from_builder: golang:1.24-alpine3.21
+      from: alpine:3.23
+      from_builder: golang:1.26.5-alpine3.23
     compress: true
     mirror: https://mirror.gcr.io
     password:
@@ -461,7 +461,7 @@ trigger:
 type: docker
 ---
 kind: pipeline
-name: publish-1.24-alpine3.21-github
+name: publish-1.26.5-alpine3.23-github
 platform:
   arch: amd64
   os: linux
@@ -469,7 +469,7 @@ steps:
 - commands:
   - echo '[registry."docker.io"]' > buildkitd.toml
   - echo '  mirrors = ["mirror.gcr.io"]' >> buildkitd.toml
-  image: alpine:3.21
+  image: alpine:3.23
   mirror: https://mirror.gcr.io
   name: setup-buildkitd
 - environment:
@@ -484,10 +484,10 @@ steps:
   privileged: true
   settings:
     auto_tag: true
-    auto_tag_suffix: alpine3.21
+    auto_tag_suffix: alpine3.23
     build_args:
-      from: alpine:3.21
-      from_builder: golang:1.24-alpine3.21
+      from: alpine:3.23
+      from_builder: golang:1.26.5-alpine3.23
     compress: true
     mirror: https://mirror.gcr.io
     password:

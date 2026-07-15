@@ -2,6 +2,8 @@ module git.gammaspectra.live/git/go-away
 
 go 1.25.0
 
+toolchain go1.26.5
+
 require (
 	codeberg.org/gone/http-cel v1.0.0
 	codeberg.org/meta/gzipped/v2 v2.0.0-20231111234332-aa70c3194756

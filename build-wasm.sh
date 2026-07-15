@@ -3,7 +3,12 @@
 set -e
 set -o pipefail
 
-cd "$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+root="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+cd "$root"
+
+# Keep nested TinyGo build commands on the repository-pinned Go toolchain.
+go_root="$("$root/ops/go.sh" env GOROOT)"
+export PATH="$go_root/bin:$PATH"
 
 mkdir -p .bin/ 2>/dev/null
 
@@ -25,8 +30,10 @@ else
   pushd .bin/tinygo
 fi
 
-export TINYGOROOT="$(realpath ./build/release/tinygo/)"
-export PATH="$PATH:$(realpath ./build/release/tinygo/bin/)"
+TINYGOROOT="$(realpath ./build/release/tinygo/)"
+export TINYGOROOT
+PATH="$PATH:$(realpath ./build/release/tinygo/bin/)"
+export PATH
 
 popd
 
