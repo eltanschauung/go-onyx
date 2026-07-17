@@ -376,6 +376,13 @@ func (d *RequestData) ChallengeDiagnostic(id Id) (stateCookie, verification stri
 	return d.stateCookieStatus, d.challengeDiagnostic[id]
 }
 
+// ClearChallengeState expires the state cookie for this host and client
+// network. The cookie remains HttpOnly; callers expose this only through a
+// same-origin, state-changing endpoint.
+func (d *RequestData) ClearChallengeState(w http.ResponseWriter) {
+	utils.ClearCookie(d.cookieName, w, d.r)
+}
+
 func (d *RequestData) Expiration(duration time.Duration) time.Time {
 	return d.Time.Add(duration).Round(duration)
 }

@@ -56,3 +56,31 @@ func TestCleanupProxyRequestPreservesLegacyBareQuery(t *testing.T) {
 		t.Fatalf("legacy signed query changed to %q", got)
 	}
 }
+
+func TestChallengeStateClearRequiresSameOriginAjax(t *testing.T) {
+	tests := []struct {
+		name      string
+		requested string
+		site      string
+		want      bool
+	}{
+		{name: "same origin", requested: "XMLHttpRequest", site: "same-origin", want: true},
+		{name: "legacy same origin", requested: "XMLHttpRequest", want: true},
+		{name: "missing ajax header", site: "same-origin", want: false},
+		{name: "cross site", requested: "XMLHttpRequest", site: "cross-site", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, "https://example.test/.go-away/clear-state", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("X-Requested-With", tt.requested)
+			req.Header.Set("Sec-Fetch-Site", tt.site)
+			if got := allowChallengeStateClear(req); got != tt.want {
+				t.Fatalf("allowChallengeStateClear() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

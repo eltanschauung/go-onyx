@@ -305,6 +305,7 @@ func (state *State) handleRequest(w http.ResponseWriter, r *http.Request) {
 func (state *State) setupRoutes() error {
 
 	state.Mux.HandleFunc("/", state.handleRequest)
+	state.Mux.HandleFunc("POST "+state.urlPath+"/clear-state", state.clearChallengeState)
 
 	state.Mux.Handle("GET "+state.urlPath+"/assets/", http.StripPrefix(state.UrlPath()+"/assets/", gzipped.FileServer(gzipped.FS(embed.AssetsFs))))
 
@@ -319,6 +320,26 @@ func (state *State) setupRoutes() error {
 	}
 
 	return nil
+}
+
+func (state *State) clearChallengeState(w http.ResponseWriter, r *http.Request) {
+	if !allowChallengeStateClear(r) {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+
+	data := challenge.RequestDataFromContext(r.Context())
+	data.ClearChallengeState(w)
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func allowChallengeStateClear(r *http.Request) bool {
+	if !strings.EqualFold(r.Header.Get("X-Requested-With"), "XMLHttpRequest") {
+		return false
+	}
+	site := r.Header.Get("Sec-Fetch-Site")
+	return site == "" || site == "same-origin"
 }
 
 func (state *State) ServeHTTP(w http.ResponseWriter, r *http.Request) {

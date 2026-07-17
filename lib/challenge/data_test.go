@@ -198,3 +198,18 @@ func TestRejectedChallengeDoesNotOverwriteProofCookie(t *testing.T) {
 		t.Fatalf("successful challenge wrote %d cookies, want 1", len(cookies))
 	}
 }
+
+func TestClearChallengeStateExpiresHttpOnlyCookie(t *testing.T) {
+	state := newCookieTestState(t)
+	_, data := newCookieTestRequest(t, state)
+	recorder := httptest.NewRecorder()
+
+	data.ClearChallengeState(recorder)
+	cookies := recorder.Result().Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("clear state wrote %d cookies, want 1", len(cookies))
+	}
+	if cookies[0].MaxAge != -1 || !cookies[0].HttpOnly || !cookies[0].Secure {
+		t.Fatalf("state cookie was not securely expired: %#v", cookies[0])
+	}
+}
