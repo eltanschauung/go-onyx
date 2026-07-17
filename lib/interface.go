@@ -60,7 +60,11 @@ func (state *State) ChallengeIssued(r *http.Request, reg *challenge.Registration
 	if logger == nil {
 		logger = state.Logger(r)
 	}
-	logger.Info("challenge issued", "challenge", reg.Name, "redirect", redirect)
+	stateCookie, verification := "unknown", "unknown"
+	if data := challenge.RequestDataFromContext(r.Context()); data != nil {
+		stateCookie, verification = data.ChallengeDiagnostic(reg.Id())
+	}
+	logger.Info("challenge issued", "challenge", reg.Name, "state_cookie", stateCookie, "verification", verification, "redirect", redirect)
 
 	metrics.Challenge(reg.Name, "issue")
 }

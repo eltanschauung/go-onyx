@@ -46,9 +46,11 @@ type RequestData struct {
 	Time                 time.Time
 	ChallengeVerify      map[Id]VerifyResult
 	ChallengeState       map[Id]VerifyState
+	challengeDiagnostic  map[Id]string
 	ChallengeMap         TokenChallengeMap
 	challengeMapModified bool
 	broadVaryApplied     bool
+	stateCookieStatus    string
 
 	RemoteAddress   netip.AddrPort
 	State           StateInterface
@@ -74,6 +76,7 @@ func CreateRequestData(r *http.Request, state StateInterface) (*http.Request, *R
 	data.RemoteAddress = utils.GetRequestAddress(r, state.Settings().ClientIpHeader)
 	data.ChallengeVerify = make(map[Id]VerifyResult, len(state.GetChallenges()))
 	data.ChallengeState = make(map[Id]VerifyState, len(state.GetChallenges()))
+	data.challengeDiagnostic = make(map[Id]string, len(state.GetChallenges()))
 	data.Time = time.Now().UTC()
 	data.State = state
 
@@ -305,18 +308,23 @@ func (d *RequestData) EvaluateChallenges(w http.ResponseWriter, r *http.Request)
 
 	challengeMap, err := d.verifyChallengeState()
 	if err != nil {
+		d.stateCookieStatus = challengeStateErrorCategory(err)
 		if !errors.Is(err, http.ErrNoCookie) {
 			//queue resend invalid cookie and continue
 			d.challengeMapModified = true
 		}
 		challengeMap = make(TokenChallengeMap)
+	} else {
+		d.stateCookieStatus = "valid"
 	}
 	d.ChallengeMap = challengeMap
 
 	for _, reg := range d.State.GetChallenges() {
 
+		_, tokenPresent := d.ChallengeMap[reg.Name]
 		key := GetChallengeKeyForRequest(d.State, reg, d.Expiration(reg.Duration), r)
 		verifyResult, verifyState, err := d.verifyChallenge(reg, key)
+		d.challengeDiagnostic[reg.Id()] = challengeVerificationCategory(tokenPresent, verifyResult, err)
 		if err != nil {
 			// clear invalid state
 			d.ClearChallengeToken(reg)
@@ -325,6 +333,45 @@ func (d *RequestData) EvaluateChallenges(w http.ResponseWriter, r *http.Request)
 		d.ChallengeVerify[reg.Id()] = verifyResult
 		d.ChallengeState[reg.Id()] = verifyState
 	}
+}
+
+func challengeStateErrorCategory(err error) string {
+	switch {
+	case errors.Is(err, http.ErrNoCookie):
+		return "missing"
+	case errors.Is(err, ErrTokenExpired):
+		return "expired"
+	default:
+		return "invalid"
+	}
+}
+
+func challengeVerificationCategory(tokenPresent bool, result VerifyResult, err error) string {
+	switch {
+	case result.Ok():
+		return "valid"
+	case !tokenPresent:
+		return "missing"
+	case errors.Is(err, ErrTokenExpired):
+		return "expired"
+	case errors.Is(err, ErrVerifyKeyMismatch):
+		return "key_mismatch"
+	case errors.Is(err, ErrVerifyVerifyMismatch):
+		return "verification_mismatch"
+	case err != nil:
+		return "invalid"
+	case result == VerifyResultSkip:
+		return "skipped"
+	default:
+		return "rejected"
+	}
+}
+
+// ChallengeDiagnostic returns privacy-safe categories suitable for structured
+// logs. It intentionally never exposes cookie contents, keys, or verifier
+// errors.
+func (d *RequestData) ChallengeDiagnostic(id Id) (stateCookie, verification string) {
+	return d.stateCookieStatus, d.challengeDiagnostic[id]
 }
 
 func (d *RequestData) Expiration(duration time.Duration) time.Time {

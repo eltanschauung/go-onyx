@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -134,5 +135,40 @@ func TestStableBrowserKeyAcceptsUnexpiredLegacyProof(t *testing.T) {
 	}
 	if !result.Ok() {
 		t.Fatalf("unexpired legacy proof was rejected: %v", result)
+	}
+}
+
+func TestChallengeDiagnosticCategories(t *testing.T) {
+	if got := challengeStateErrorCategory(http.ErrNoCookie); got != "missing" {
+		t.Fatalf("missing cookie category = %q", got)
+	}
+	if got := challengeStateErrorCategory(ErrTokenExpired); got != "expired" {
+		t.Fatalf("expired cookie category = %q", got)
+	}
+	if got := challengeStateErrorCategory(errors.New("malformed JWE")); got != "invalid" {
+		t.Fatalf("invalid cookie category = %q", got)
+	}
+
+	tests := []struct {
+		name         string
+		tokenPresent bool
+		result       VerifyResult
+		err          error
+		want         string
+	}{
+		{name: "missing token", result: VerifyResultFail, want: "missing"},
+		{name: "valid token", tokenPresent: true, result: VerifyResultOK, want: "valid"},
+		{name: "expired token", tokenPresent: true, result: VerifyResultFail, err: ErrTokenExpired, want: "expired"},
+		{name: "key mismatch", tokenPresent: true, result: VerifyResultFail, err: ErrVerifyKeyMismatch, want: "key_mismatch"},
+		{name: "verification mismatch", tokenPresent: true, result: VerifyResultFail, err: ErrVerifyVerifyMismatch, want: "verification_mismatch"},
+		{name: "invalid token", tokenPresent: true, result: VerifyResultFail, err: errors.New("invalid"), want: "invalid"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := challengeVerificationCategory(tt.tokenPresent, tt.result, tt.err); got != tt.want {
+				t.Fatalf("category = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
