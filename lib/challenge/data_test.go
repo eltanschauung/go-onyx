@@ -172,3 +172,29 @@ func TestChallengeDiagnosticCategories(t *testing.T) {
 		})
 	}
 }
+
+func TestRejectedChallengeDoesNotOverwriteProofCookie(t *testing.T) {
+	state := newCookieTestState(t)
+	_, data := newCookieTestRequest(t, state)
+	data.ChallengeMap = make(TokenChallengeMap)
+	reg := &Registration{Name: "ipaccess"}
+	key := Key{1}
+
+	data.IssueChallengeToken(reg, key, []byte("rejected"), time.Now().Add(time.Hour), false)
+	recorder := httptest.NewRecorder()
+	data.ResponseHeaders(recorder)
+
+	if cookies := recorder.Header().Values("Set-Cookie"); len(cookies) != 0 {
+		t.Fatalf("rejected challenge wrote stale state cookie: %d header(s)", len(cookies))
+	}
+	if _, exists := data.ChallengeMap[reg.Name]; exists {
+		t.Fatal("rejected challenge was retained in state")
+	}
+
+	data.IssueChallengeToken(reg, key, []byte("accepted"), time.Now().Add(time.Hour), true)
+	recorder = httptest.NewRecorder()
+	data.ResponseHeaders(recorder)
+	if cookies := recorder.Header().Values("Set-Cookie"); len(cookies) != 1 {
+		t.Fatalf("successful challenge wrote %d cookies, want 1", len(cookies))
+	}
+}

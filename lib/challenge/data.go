@@ -206,10 +206,16 @@ func (d *RequestData) BackendHost() (http.Handler, string) {
 
 func (d *RequestData) ClearChallengeToken(reg *Registration) {
 	delete(d.ChallengeMap, reg.Name)
-	d.challengeMapModified = true
 }
 
 func (d *RequestData) IssueChallengeToken(reg *Registration, key Key, result []byte, until time.Time, ok bool) {
+	// Only successful challenge state is worth persisting. Writing a rejected
+	// transparent check from an older in-flight request can arrive after a PoW
+	// verification response and overwrite the newer proof cookie.
+	if !ok {
+		return
+	}
+
 	d.ChallengeMap[reg.Name] = TokenChallenge{
 		Key:      key[:],
 		Result:   result,
@@ -309,10 +315,6 @@ func (d *RequestData) EvaluateChallenges(w http.ResponseWriter, r *http.Request)
 	challengeMap, err := d.verifyChallengeState()
 	if err != nil {
 		d.stateCookieStatus = challengeStateErrorCategory(err)
-		if !errors.Is(err, http.ErrNoCookie) {
-			//queue resend invalid cookie and continue
-			d.challengeMapModified = true
-		}
 		challengeMap = make(TokenChallengeMap)
 	} else {
 		d.stateCookieStatus = "valid"
