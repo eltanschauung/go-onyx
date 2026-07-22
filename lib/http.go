@@ -2,6 +2,8 @@ package lib
 
 import (
 	"codeberg.org/meta/gzipped/v2"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"git.gammaspectra.live/git/go-away/embed"
 	"git.gammaspectra.live/git/go-away/lib/action"
@@ -11,6 +13,8 @@ import (
 	"golang.org/x/net/html"
 	"log/slog"
 	"net/http"
+	"net/netip"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -18,13 +22,22 @@ import (
 
 func GetLoggerForRequest(r *http.Request) *slog.Logger {
 	data := challenge.RequestDataFromContext(r.Context())
+	browserID, browserPresent := browserAuditID(r)
+	var browserValue any
+	if browserPresent {
+		browserValue = browserID
+	}
 	args := []any{
 		"request_id", data.Id.String(),
 		"remote_address", data.RemoteAddress.Addr().String(),
+		"ip_subnet", requestIPSubnet(data.RemoteAddress.Addr()),
+		"browser_id", browserValue,
+		"browser_present", browserPresent,
+		"method", r.Method,
 		"user_agent", r.UserAgent(),
 		"host", r.Host,
 		"path", r.URL.Path,
-		"query", r.URL.RawQuery,
+		"query", publicRawQuery(r.URL.RawQuery),
 	}
 
 	if fp := utils.GetTLSFingerprint(r); fp != nil {
@@ -36,6 +49,59 @@ func GetLoggerForRequest(r *http.Request) *slog.Logger {
 		}
 	}
 	return slog.With(args...)
+}
+
+func requestIPSubnet(address netip.Addr) string {
+	address = address.Unmap()
+	bits := 48
+	if address.Is4() {
+		bits = 24
+	}
+	if !address.IsValid() {
+		return ""
+	}
+	return netip.PrefixFrom(address, bits).Masked().String()
+}
+
+func browserAuditID(r *http.Request) (string, bool) {
+	for _, name := range []string{"__Host-eirinchan_browser", "browser_token"} {
+		cookie, err := r.Cookie(name)
+		if err != nil || cookie.Value == "" {
+			continue
+		}
+
+		value := cookie.Value
+		if name == "__Host-eirinchan_browser" {
+			parts := strings.Split(value, ".")
+			if len(parts) == 4 && parts[0] == "v1" && len(parts[2]) == 32 {
+				value = parts[2]
+			}
+		}
+
+		digest := sha256.Sum256([]byte(value))
+		return "browser-log:v1:" + base64.RawURLEncoding.EncodeToString(digest[:]), true
+	}
+
+	return "", false
+}
+
+func publicRawQuery(rawQuery string) string {
+	query, _ := utils.ParseRawQuery(rawQuery)
+	for key := range query {
+		if strings.HasPrefix(key, challenge.QueryArgPrefix) {
+			query.Del(key)
+		}
+	}
+	return utils.EncodeRawQuery(query)
+}
+
+func publicRedirect(redirect string) string {
+	uri, err := url.Parse(redirect)
+	if err != nil {
+		return ""
+	}
+	uri.RawQuery = publicRawQuery(uri.RawQuery)
+	return uri.String()
 }
 
 func cleanupProxyRequest(r *http.Request) {

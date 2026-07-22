@@ -2,8 +2,60 @@ package lib
 
 import (
 	"net/http"
+	"net/netip"
+	"strings"
 	"testing"
 )
+
+func TestRequestIPSubnetMatchesAccessGrantRanges(t *testing.T) {
+	tests := []struct {
+		address string
+		want    string
+	}{
+		{address: "192.0.2.91", want: "192.0.2.0/24"},
+		{address: "2001:db8:abcd:1234::1", want: "2001:db8:abcd::/48"},
+	}
+
+	for _, tt := range tests {
+		if got := requestIPSubnet(netip.MustParseAddr(tt.address)); got != tt.want {
+			t.Fatalf("requestIPSubnet(%q) = %q, want %q", tt.address, got, tt.want)
+		}
+	}
+}
+
+func TestBrowserAuditIDSurvivesSignedCookieRotation(t *testing.T) {
+	token := strings.Repeat("A", 32)
+	request := func(issued, signature string) *http.Request {
+		r, err := http.NewRequest(http.MethodGet, "https://example.test/bant/", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.AddCookie(&http.Cookie{
+			Name:  "__Host-eirinchan_browser",
+			Value: "v1." + issued + "." + token + "." + signature,
+		})
+		return r
+	}
+
+	first, present := browserAuditID(request("1700000000", strings.Repeat("B", 43)))
+	if !present {
+		t.Fatal("browser cookie was not detected")
+	}
+	second, present := browserAuditID(request("1700003600", strings.Repeat("C", 43)))
+	if !present || second != first {
+		t.Fatalf("rotated cookie changed browser audit id: %q != %q", second, first)
+	}
+	if strings.Contains(first, token) {
+		t.Fatal("browser audit id exposed the browser token")
+	}
+}
+
+func TestPublicRawQueryRemovesInternalChallengeValues(t *testing.T) {
+	raw := "fragment=md5&__goaway_challenge=js-pow-sha256&__goaway_token=secret"
+	if got := publicRawQuery(raw); got != "fragment=md5" {
+		t.Fatalf("publicRawQuery() = %q, want fragment=md5", got)
+	}
+}
 
 func TestCleanupProxyRequestPreservesNormalReferer(t *testing.T) {
 	req, err := http.NewRequest("GET", "https://example.test/bant?fragment=md5", nil)

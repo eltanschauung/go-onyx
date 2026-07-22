@@ -42,7 +42,18 @@ func (state *State) ChallengeFailed(r *http.Request, reg *challenge.Registration
 	if logger == nil {
 		logger = state.Logger(r)
 	}
-	logger.Warn("challenge failed", "challenge", reg.Name, "err", err, "redirect", redirect)
+	stateCookie, verification := challengeDiagnostics(r, reg)
+	logger.Warn(
+		"challenge failed",
+		"event", "challenge.failed",
+		"status", "failed",
+		"outcome", "challenge_error",
+		"challenge", reg.Name,
+		"state_cookie", stateCookie,
+		"verification", verification,
+		"err", err,
+		"redirect", publicRedirect(redirect),
+	)
 
 	metrics.Challenge(reg.Name, "fail")
 }
@@ -51,7 +62,17 @@ func (state *State) ChallengePassed(r *http.Request, reg *challenge.Registration
 	if logger == nil {
 		logger = state.Logger(r)
 	}
-	logger.Warn("challenge passed", "challenge", reg.Name, "redirect", redirect)
+	stateCookie, verification := challengeDiagnostics(r, reg)
+	logger.Warn(
+		"challenge passed",
+		"event", "challenge.passed",
+		"status", "passed",
+		"outcome", "passed",
+		"challenge", reg.Name,
+		"state_cookie", stateCookie,
+		"verification", verification,
+		"redirect", publicRedirect(redirect),
+	)
 
 	metrics.Challenge(reg.Name, "pass")
 }
@@ -60,17 +81,45 @@ func (state *State) ChallengeIssued(r *http.Request, reg *challenge.Registration
 	if logger == nil {
 		logger = state.Logger(r)
 	}
-	stateCookie, verification := "unknown", "unknown"
-	if data := challenge.RequestDataFromContext(r.Context()); data != nil {
-		stateCookie, verification = data.ChallengeDiagnostic(reg.Id())
-	}
-	logger.Info("challenge issued", "challenge", reg.Name, "state_cookie", stateCookie, "verification", verification, "redirect", redirect)
+	stateCookie, verification := challengeDiagnostics(r, reg)
+	logger.Info(
+		"challenge issued",
+		"event", "challenge.issued",
+		"status", "pending",
+		"outcome", "issued",
+		"challenge", reg.Name,
+		"state_cookie", stateCookie,
+		"verification", verification,
+		"redirect", publicRedirect(redirect),
+	)
 
 	metrics.Challenge(reg.Name, "issue")
 }
 
 func (state *State) ChallengeChecked(r *http.Request, reg *challenge.Registration, redirect string, logger *slog.Logger) {
+	if logger == nil {
+		logger = state.Logger(r)
+	}
+	stateCookie, verification := challengeDiagnostics(r, reg)
+	logger.Info(
+		"challenge checked",
+		"event", "challenge.checked",
+		"status", "passed",
+		"outcome", "existing_proof",
+		"challenge", reg.Name,
+		"state_cookie", stateCookie,
+		"verification", verification,
+		"redirect", publicRedirect(redirect),
+	)
 	metrics.Challenge(reg.Name, "check")
+}
+
+func challengeDiagnostics(r *http.Request, reg *challenge.Registration) (stateCookie, verification string) {
+	stateCookie, verification = "unknown", "unknown"
+	if data := challenge.RequestDataFromContext(r.Context()); data != nil {
+		stateCookie, verification = data.ChallengeDiagnostic(reg.Id())
+	}
+	return stateCookie, verification
 }
 
 func (state *State) RuleHit(r *http.Request, name string, logger *slog.Logger) {
